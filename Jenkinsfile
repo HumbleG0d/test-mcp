@@ -263,8 +263,7 @@ pipeline {
                     branch 'develop'
                 }
             }
-            dir('runbooks'){
-                steps {
+            steps {
                 script {
                     try {
                         // Deploy a staging usando docker-compose
@@ -296,7 +295,6 @@ pipeline {
                         error("❌ Staging deployment failed: ${e.getMessage()}")
                     }
                 }
-            }
             }
         }
         
