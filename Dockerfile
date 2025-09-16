@@ -10,8 +10,12 @@ WORKDIR /usr/src/app
 # Copiar archivos de configuración
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production && npm cache clean --force
+# Instalar dependencias (usa ci si hay lockfile, si no usa install)
+RUN if [ -f package-lock.json ]; then \
+      npm ci --omit=dev; \
+    else \
+      npm install --omit=dev; \
+    fi && npm cache clean --force
 
 # Crear usuario no-root
 RUN addgroup -g 1001 -S nodejs
@@ -31,7 +35,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 # Comando de inicio con dumb-init para manejo de señales
-CMD ["dumb-init", "node", "app.js"]
+CMD ["dumb-init", "node", "runbooks/api.js"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

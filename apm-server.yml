@@ -1,0 +1,32 @@
+apm-server:
+  host: "0.0.0.0:8200"
+  
+  # Habilitar receptor OTLP
+  otlp:
+    grpc:
+      enabled: true
+      host: "0.0.0.0:8200"
+    http:
+      enabled: true
+      host: "0.0.0.0:8200"
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  
+setup.kibana:
+  host: "http://kibana:5601"
+  
+# Configurar templates y dashboards automáticamente  
+setup.template.enabled: true
+setup.template.overwrite: false
+setup.dashboards.enabled: true
+setup.dashboards.beat: apm
+setup.ilm.enabled: auto
+
+logging.level: info
+logging.to_stderr: true
+logging.to_files: false
+logging.to_syslog: false
+logging.files:
+  path: ""
+logging.selectors: ["*"]

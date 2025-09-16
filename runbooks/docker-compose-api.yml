@@ -1,7 +1,7 @@
 services:
   express-api:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: express-metrics-api
     ports:
@@ -11,13 +11,11 @@ services:
       - PORT=3000
       - OTEL_SERVICE_NAME=express-metrics-api
       - OTEL_SERVICE_VERSION=1.0.0
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otel-collector:4318/v1/traces
-      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://apm-server:8200/v1/traces
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://apm-server:8200/v1/metrics
       - OTEL_RESOURCE_ATTRIBUTES=service.name=express-metrics-api,service.version=1.0.0,deployment.environment=production
     networks:
       - otel-network
-    depends_on:
-      - otel-collector
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { if (res.statusCode === 200) process.exit(0); else process.exit(1); }).on('error', () => process.exit(1))"]
@@ -25,6 +23,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    depends_on:
+      - apm-server
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:8.11.0
+    container_name: apm-server
+    ports:
+      - "8200:8200"
+    environment:
+      - LOGGING_TO_FILES=false
+      - LOGGING_TO_STDERR=true
+      - LOGGING_LEVEL=info
+    volumes:
+      - ../apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    networks:
+      - otel-network
 
 networks:
   otel-network:
