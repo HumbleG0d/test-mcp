@@ -10,12 +10,12 @@ apm-server:
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
   username: "elastic"
-  password: "123"
+  password: "somethingsecret"
 
 setup.kibana:
   host: "http://kibana:5601"
   username: "elastic"
-  password: "123"
+  password: "somethingsecret"
 
 # CRÍTICO: Setup automático de templates y dashboards
 setup.template.enabled: true
