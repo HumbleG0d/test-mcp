@@ -1,0 +1,100 @@
+#config.yml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  # Receiver para logs de Jenkins via HTTP
+  filelog:
+    include: [/var/log/jenkins/*.log]
+    operators:
+      - type: regex_parser
+        regex: '^OTEL_LOG: (?P<json_log>.*)'
+        parse_from: attributes.json_log
+
+processors:
+  # Procesador para agregar metadatos de Jenkins
+  attributes:
+    actions:
+      - key: service.name
+        value: jenkins
+        action: insert
+      - key: service.version
+        value: "2.400"
+        action: insert
+      - key: deployment.environment
+        value: production
+        action: insert
+  
+  # Procesador para filtrar logs importantes (comentado para capturar todos)
+  # filter:
+  #   logs:
+  #     log_record:
+  #       - 'attributes["level"] == "ERROR" or attributes["level"] == "WARN"'
+  
+  # Procesador para enriquecer logs con información de pipeline
+  resource:
+    attributes:
+      - key: service.name
+        value: jenkins
+        action: upsert
+  
+  # Procesador de memoria para optimizar rendimiento
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+  
+  # Procesador de lotes para mejorar eficiencia
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+exporters:
+  # Exportador a Elasticsearch
+  elasticsearch:
+    endpoints: [http://elasticsearch:9200]
+    logs_index: jenkins-logs
+    mapping:
+      mode: ecs
+    auth:
+      authenticator: basicauth/elasticsearch
+  
+  # Exportador de debugging
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  basicauth/elasticsearch:
+    client_auth:
+      username: elastic
+      password: somethingsecret
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes, resource, batch]
+      exporters: [elasticsearch, debug]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+    
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [elasticsearch, debug]
+  
+  extensions: [basicauth/elasticsearch]
+  
+  telemetry:
+    logs:
+      level: info
