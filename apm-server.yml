@@ -1,20 +1,46 @@
 apm-server:
   host: "0.0.0.0:8200"
   
+  # NUEVO: Habilitar receptor OTLP
   auth:
     anonymous:
       enabled: true
       allow_service: ['*']
+      allow_agent: ['*']
+    
+  # Configuración para OpenTelemetry
+  otlp:
+    grpc:
+      enabled: true
+      host: "0.0.0.0:8200"
+    http:
+      enabled: true  
+      host: "0.0.0.0:8200"
 
 # Configuración con credenciales de Elasticsearch
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
   username: "elastic"
   password: "somethingsecret"
+  
+  # Configuración de índices para métricas
+  indices:
+    - index: "apm-%{[agent.version]}-error"
+      when.contains:
+        processor.event: "error"
+    - index: "apm-%{[agent.version]}-transaction" 
+      when.contains:
+        processor.event: "transaction"
+    - index: "apm-%{[agent.version]}-span"
+      when.contains:
+        processor.event: "span"
+    - index: "apm-%{[agent.version]}-metric"
+      when.contains:
+        processor.event: "metric"
 
 setup.kibana:
   host: "http://kibana:5601"
-  username: "elastic"
+  username: "elastic"  
   password: "somethingsecret"
 
 # CRÍTICO: Setup automático de templates y dashboards
@@ -27,8 +53,21 @@ setup.ilm.enabled: auto
 # Configurar data streams manualmente para APM
 setup.template.name: "apm"
 setup.template.pattern: "apm-*"
+setup.template.settings:
+  index:
+    number_of_shards: 1
+    number_of_replicas: 0
+
+# Configuración específica para métricas
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ["http://elasticsearch:9200"]
+    username: "elastic"
+    password: "somethingsecret"
 
 # Logging
 logging.level: info
 logging.to_stderr: true
 logging.to_files: false
+logging.selectors: ["*"]
