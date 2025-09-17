@@ -38,7 +38,6 @@ services:
       - ../apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
     networks:
       - otel-network
-
 networks:
   otel-network:
     external: true

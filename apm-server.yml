@@ -1,11 +1,12 @@
+#apm-server.yml
 apm-server:
   host: "0.0.0.0:8200"
   
-  # NUEVO: Habilitar receptor OTLP
+  # Configuración de autenticación
   auth:
     anonymous:
       enabled: true
-      allow_service: ['*']
+      allow_service: ['express-metrics-api']  # ESPECÍFICO: Solo Express API
       allow_agent: ['*']
     
   # Configuración para OpenTelemetry
@@ -23,40 +24,50 @@ output.elasticsearch:
   username: "elastic"
   password: "somethingsecret"
   
-  # Configuración de índices para métricas
+  # Configuración de índices ESPECÍFICOS para APM
   indices:
-    - index: "apm-%{[agent.version]}-error"
+    - index: "apm-%{[agent.version]}-error-%{+yyyy.MM.dd}"
       when.contains:
         processor.event: "error"
-    - index: "apm-%{[agent.version]}-transaction" 
+    - index: "apm-%{[agent.version]}-transaction-%{+yyyy.MM.dd}" 
       when.contains:
         processor.event: "transaction"
-    - index: "apm-%{[agent.version]}-span"
+    - index: "apm-%{[agent.version]}-span-%{+yyyy.MM.dd}"
       when.contains:
         processor.event: "span"
-    - index: "apm-%{[agent.version]}-metric"
+    - index: "apm-%{[agent.version]}-metric-%{+yyyy.MM.dd}"
       when.contains:
         processor.event: "metric"
+
+  # FILTRO: Solo procesar datos de Express API
+  pipeline: apm_user_agent
+  pipelines:
+    - pipeline: apm_user_agent
+      processors:
+        - drop:
+            when.not.equals:
+              service.name: "express-metrics-api"
 
 setup.kibana:
   host: "http://kibana:5601"
   username: "elastic"  
   password: "somethingsecret"
 
-# CRÍTICO: Setup automático de templates y dashboards
+# Setup automático de templates y dashboards
 setup.template.enabled: true
 setup.template.overwrite: true
 setup.dashboards.enabled: true
 setup.dashboards.overwrite: true
 setup.ilm.enabled: auto
 
-# Configurar data streams manualmente para APM
-setup.template.name: "apm"
+# Configurar templates específicos para Express API
+setup.template.name: "apm-express"
 setup.template.pattern: "apm-*"
 setup.template.settings:
   index:
     number_of_shards: 1
     number_of_replicas: 0
+    refresh_interval: "5s"
 
 # Configuración específica para métricas
 monitoring:
